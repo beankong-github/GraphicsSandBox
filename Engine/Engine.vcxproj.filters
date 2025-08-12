@@ -24,12 +24,18 @@
     <ClInclude Include="Core\engine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\SBEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Core\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

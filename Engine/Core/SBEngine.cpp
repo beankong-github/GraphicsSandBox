@@ -1,23 +1,30 @@
 #include "pch.h"
 #include "SBEngine.h"
 
-SBEngine::SBEngine(Vector2 inResolution)
-	:resolution(inResolution)
-{
 
+SBEngine::SBEngine()
+{
 }
 
 SBEngine::~SBEngine()
 {
 }
 
-int SBEngine::Init(HWND hWnd, Vector2 resolution)
+void SBEngine::Init(HWND hWnd, Vector2 resolution)
 {
 	this->hWnd = hWnd;
 	this->resolution = resolution;
 
-	// 윈도우 생성
+	// 윈도우 화면 사이즈 조절
+	RECT rt = { 0, 0, resolution.x, resolution.y };
+	AdjustWindowRect(&rt, WS_OVERLAPPED, false);
+	// 대충 화면 중간에 오도록 조절한다.
+	SetWindowPos(this->hWnd, nullptr, 10, 10, rt.right - rt.left, rt.bottom - rt.top, 0);
 
 
 	return 0;
+}
+
+void SBEngine::Progress()
+{
 }

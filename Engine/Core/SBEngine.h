@@ -1,20 +1,38 @@
 #pragma once
 #include "engine.h"
 
-class  Engine_API SBEngine
+class Engine_API SBEngine
 {
-public:
-	SBEngine(Vector2  inResolution);
-	~SBEngine();
+private:
+	// 외부에서 SBEngine을 생성할 수 없도록 막는다.
+	SBEngine();
 
 public:
-	int Init(HWND hWnd, Vector2 resolution);
+	~SBEngine();
+
+	// singleton 객체 반환
+	static SBEngine* Get()
+	{
+		if (instance == nullptr)
+			instance = new SBEngine();
+
+		return instance;
+	}
+
+public:
+	void Init(HWND hWnd, Vector2 resolution);
 	void Progress();
 
 	const HWND& GetMainHwnd() { return hWnd; }
 
 
+
 private:
+	// 싱글톤
+	static SBEngine* instance;
+
 	HWND hWnd;
 	Vector2 resolution;
 };
+
+SBEngine* SBEngine::instance = nullptr;
