@@ -13,41 +13,54 @@ private:
 	Device();
 
 	bool Init();
+	bool InitDirect3D();
+	void CreateCommandObjects();
+	void CreateSwapChain();
+	void CreateRTVAndDSVDescriptorHeaps();
 
-	ComPtr<ID3D12Device>		device;			
-	ComPtr<IDXGIFactory>		factory;	// 어뎁터 가져오는용
-	ComPtr<IDXGISwapChain3>		swapChain;
+	void LogAdapters();
+	void LogAdapterOutputs(IDXGIAdapter* adapter);
+	void LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format);
 
-	bool MSAA4xEnable = { false };
-	UINT m_nMsaa4xQualityLevels = { 0 };
-	static const UINT m_nSwapChainBuffers = { 2 };
-	UINT m_nSwapChainBufferIndex;
+	ComPtr<ID3D12Device>				mDevice;			
+	ComPtr<IDXGIFactory4>				mFactory;	
+	ComPtr<IDXGISwapChain3>		mSwapChain;
 
-	ID3D12Resource* m_ppd3dRenderTargetBuffers[m_nSwapChainBuffers];
-	ID3D12DescriptorHeap* m_pd3dRtvDescriptorHeap;
-	UINT m_nRtvDescriptorIncrementSize;
-	// 렌더타겟, 서술자힙 포인터. 렌더 타겟 서술자 크기
+	// Command
+	// Command List(CPU) -> Allocatior <- Command Queue(GPU)
+	ComPtr<ID3D12CommandQueue> mCommandQueue;
+	ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;
+	ComPtr<ID3D12GraphicsCommandList> mCommandList;
 
-	ID3D12Resource* m_pd3dDepthStencilBuffer;
-	ID3D12DescriptorHeap* m_pd3dDsvDescriptorHeap;
-	UINT m_nDsvDescriptorIncrementSize;
-	// 깊이 스텐실 버퍼, 서술자 힙 포인터. 깊이 스텐실 서술자 크기
+	ComPtr<ID3D12Fence> mFence;
+	UINT64 mCurrentFence = 0;
 
-	ID3D12CommandQueue* m_pd3dCommandQueue;
-	ID3D12CommandAllocator* m_pd3dCommandAllocator;
-	ID3D12GraphicsCommandList* m_pd3dCommandList;
-	//명령 큐, 명령 할당자, 명령 리스트 포인터
+	// Swap Chain
+	static const int SwapChainBufferCount = 2;
+	int mCurrBackBuffer = 0;
+	ComPtr<ID3D12Resource> mSwapChainBuffer[SwapChainBufferCount];
+	ComPtr<ID3D12Resource> mDepthStencilBuffer;
 
-	ID3D12PipelineState* m_pd3dPipelineState;
-	// 그래픽 파이프라인 상태 객체 포인터
+	// 4X MSAA
+	// Set true to use 4X MSAA (§4.1.8).  The default is false.
+	// TODO  :: 나중에 MASS 켜기
+	bool      m4xMsaaState = false;    // 4X MSAA enabled
+	UINT      m4xMsaaQuality = 0;      // quality level of 4X MSAA
+	
+	// Descriptor
+	ComPtr<ID3D12DescriptorHeap> mRtvHeap;
+	ComPtr<ID3D12DescriptorHeap> mDsvHeap;
 
-	ID3D12Fence* m_pd3dFence;
-	UINT64 m_nFenceValue;
-	HANDLE m_hFenceEvent;
-	// 펜스 포인터, 펜스 값, 이벤트 핸들
+	//화면
+	D3D12_VIEWPORT mScreenViewport;
+	D3D12_RECT mScissorRect;
 
-	D3D12_VIEWPORT m_d3dViewport;
-	D3D12_RECT m_d3dScissorRect;
-	//뷰포트와 시저 사각형
+	UINT mRtvDescriptorSize = 0;
+	UINT mDsvDescriptorSize = 0;
+	UINT mCbvSrvUavDescriptorSize = 0;
 
+
+	D3D_DRIVER_TYPE md3dDriverType = D3D_DRIVER_TYPE_HARDWARE;
+	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 };

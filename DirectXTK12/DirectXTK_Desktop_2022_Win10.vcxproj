@@ -44,6 +44,7 @@
     <ClInclude Include="Inc\Keyboard.h" />
     <ClInclude Include="Inc\Model.h" />
     <ClInclude Include="Inc\Mouse.h" />
+    <ClInclude Include="Inc\PlatformHelpers.h" />
     <ClInclude Include="Inc\PostProcess.h" />
     <ClInclude Include="Inc\RenderTargetState.h" />
     <ClInclude Include="Inc\ResourceUploadBatch.h" />

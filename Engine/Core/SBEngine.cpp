@@ -1,10 +1,9 @@
 #include "pch.h"
 #include "SBEngine.h"
+#include "Device.h"
 
 
-SBEngine::SBEngine()
-{
-}
+SBEngine* SBEngine::instance = nullptr;
 
 SBEngine::~SBEngine()
 {
@@ -21,8 +20,10 @@ void SBEngine::Init(HWND hWnd, Vector2 resolution)
 	// 대충 화면 중간에 오도록 조절한다.
 	SetWindowPos(this->hWnd, nullptr, 10, 10, rt.right - rt.left, rt.bottom - rt.top, 0);
 
+	Device->Init(resolution);
 
-	return 0;
+
+	return;
 }
 
 void SBEngine::Progress()

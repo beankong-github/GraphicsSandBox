@@ -58,8 +58,8 @@ int main()
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
 	UpdateWindow(hWnd);  // 현재 무효 영역이 있으면 곧바로 그리기(없으면 영향 없음)
 
-	// TODO :: Engine 초기화
-
+	// Engine 초기화
+	SBEngine::Get()->Init(hWnd, resolution);
 
 	MSG msg{};
 	while (true)
@@ -74,7 +74,7 @@ int main()
 		}
 		else
 		{
-			// TODO::Run Code
+			// TODO::Run Engine Loop
 
 
 		}

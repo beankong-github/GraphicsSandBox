@@ -181,6 +181,7 @@
     <ClInclude Include="Core\pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\engine.cpp" />
     <ClCompile Include="Core\SBEngine.cpp" />
     <ClCompile Include="Core\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

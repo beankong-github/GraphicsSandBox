@@ -156,6 +156,9 @@
     <ClInclude Include="Src\CMO.h">
       <Filter>Src\Shared</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\PlatformHelpers.h">
+      <Filter>Src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\CommonStates.cpp">

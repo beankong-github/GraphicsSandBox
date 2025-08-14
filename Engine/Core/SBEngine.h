@@ -5,7 +5,7 @@ class Engine_API SBEngine
 {
 private:
 	// 외부에서 SBEngine을 생성할 수 없도록 막는다.
-	SBEngine();
+	SBEngine() = default;
 
 public:
 	~SBEngine();
@@ -23,16 +23,16 @@ public:
 	void Init(HWND hWnd, Vector2 resolution);
 	void Progress();
 
-	const HWND& GetMainHwnd() { return hWnd; }
-
+	inline const HWND& GetMainHwnd() { return hWnd; }
+	inline const Vector2& GetResolution() { return resolution; }
 
 
 private:
 	// 싱글톤
 	static SBEngine* instance;
 
-	HWND hWnd;
-	Vector2 resolution;
-};
+	ComPtr<class Device> Device;
 
-SBEngine* SBEngine::instance = nullptr;
+	HWND hWnd = 0;
+	Vector2 resolution = Vector2::Zero;
+};
