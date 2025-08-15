@@ -4,13 +4,21 @@
 class IDXGIFactory4;
 class IDXGISwapChain3;
 
-class Device
+class Engine_API Device
 {
 	friend class SBEngine;
+	friend struct std::default_delete<Device>; // unique_ptr 삭제 허용
 
 private:
-	// SBEngine이외에서 Device 생성을 막는다.
-	Device();
+	// SBEngine이외에서 mDevice 생성을 막는다.
+	Device() = default;
+	~Device() = default;
+
+
+	Device(const Device&) = delete;
+	Device& operator=(const Device&) = delete;
+	Device(Device&&) = delete;
+	Device& operator=(Device&&) = delete;
 
 	bool Init();
 	bool InitDirect3D();
@@ -18,12 +26,17 @@ private:
 	void CreateSwapChain();
 	void CreateRTVAndDSVDescriptorHeaps();
 
+	void OnResizeWindow();
+	void FlushCommandQueue();	// Command queue의 명령 비우기
+
 	void LogAdapters();
 	void LogAdapterOutputs(IDXGIAdapter* adapter);
 	void LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format);
 
-	ComPtr<ID3D12Device>				mDevice;			
-	ComPtr<IDXGIFactory4>				mFactory;	
+	inline D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
+
+	ComPtr<ID3D12Device>		mDevice;			
+	ComPtr<IDXGIFactory4>		mFactory;	
 	ComPtr<IDXGISwapChain3>		mSwapChain;
 
 	// Command
@@ -42,8 +55,7 @@ private:
 	ComPtr<ID3D12Resource> mDepthStencilBuffer;
 
 	// 4X MSAA
-	// Set true to use 4X MSAA (§4.1.8).  The default is false.
-	// TODO  :: 나중에 MASS 켜기
+	// => 스왑체인에서 MSAA는 사용하지 않는다.
 	bool      m4xMsaaState = false;    // 4X MSAA enabled
 	UINT      m4xMsaaQuality = 0;      // quality level of 4X MSAA
 	

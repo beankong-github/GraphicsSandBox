@@ -12,6 +12,7 @@ using namespace Microsoft::WRL;
 
 // stl
 #include <string>
+#include <memory>
 
 #ifdef ExportEngineDLL
 #define Engine_API __declspec(dllexport)
@@ -30,7 +31,7 @@ inline std::wstring AnsiToWString(const std::string& str)
 
 // Util 함수들 ====================================
 
-// 01. 디버그
+// 01. 디버그 -------------------------------------
 #ifndef ThrowIfFailed
 #define ThrowIfFailed(x)                                              \
 {                                                                     \
@@ -55,7 +56,7 @@ public:
 };
 
 
-// 02. Com Ptr
+// 02. Com Ptr -------------------------------------
 #ifndef ReleaseCom
 #define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
 #endif

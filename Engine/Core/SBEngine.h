@@ -22,16 +22,17 @@ public:
 public:
 	void Init(HWND hWnd, Vector2 resolution);
 	void Progress();
+	void OnResizeWindow(Vector2 resolution);
 
 	inline const HWND& GetMainHwnd() { return hWnd; }
 	inline const Vector2& GetResolution() { return resolution; }
-
+	inline const class Device* GetDevice() const { return mDevice; }
 
 private:
 	// ΩÃ±€≈Ê
 	static SBEngine* instance;
 
-	ComPtr<class Device> Device;
+	class Device* mDevice;
 
 	HWND hWnd = 0;
 	Vector2 resolution = Vector2::Zero;

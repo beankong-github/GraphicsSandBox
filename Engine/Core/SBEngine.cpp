@@ -7,6 +7,8 @@ SBEngine* SBEngine::instance = nullptr;
 
 SBEngine::~SBEngine()
 {
+	if (mDevice)
+		delete mDevice;
 }
 
 void SBEngine::Init(HWND hWnd, Vector2 resolution)
@@ -20,7 +22,9 @@ void SBEngine::Init(HWND hWnd, Vector2 resolution)
 	// 대충 화면 중간에 오도록 조절한다.
 	SetWindowPos(this->hWnd, nullptr, 10, 10, rt.right - rt.left, rt.bottom - rt.top, 0);
 
-	Device->Init(resolution);
+	mDevice = new Device();
+	assert(mDevice);
+	mDevice->Init();
 
 
 	return;
@@ -28,4 +32,12 @@ void SBEngine::Init(HWND hWnd, Vector2 resolution)
 
 void SBEngine::Progress()
 {
+}
+
+void SBEngine::OnResizeWindow(Vector2 resolution)
+{
+	assert(mDevice, "Device가 존재하지 않습니다.");
+	mDevice->OnResizeWindow();
+
+
 }
