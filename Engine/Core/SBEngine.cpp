@@ -41,3 +41,22 @@ void SBEngine::OnResizeWindow(Vector2 resolution)
 
 
 }
+
+LRESULT SBEngine::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+	case  WM_SIZE:
+		resolution = Vector2(LOWORD(lParam), HIWORD(lParam));
+
+		if (mDevice)
+		{
+			if (wParam == SIZE_MINIMIZED)
+			{
+				
+			}
+		}
+	
+	}
+	return LRESULT();
+}

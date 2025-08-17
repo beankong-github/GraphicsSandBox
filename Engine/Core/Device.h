@@ -26,6 +26,10 @@ private:
 	void CreateSwapChain();
 	void CreateRTVAndDSVDescriptorHeaps();
 
+	void Update();
+	void LateUpdate();
+	void Draw();
+
 	void OnResizeWindow();
 	void FlushCommandQueue();	// Command queue의 명령 비우기
 

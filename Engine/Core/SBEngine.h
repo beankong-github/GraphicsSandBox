@@ -24,6 +24,9 @@ public:
 	void Progress();
 	void OnResizeWindow(Vector2 resolution);
 
+	// Window 이벤트 처리
+	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 	inline const HWND& GetMainHwnd() { return hWnd; }
 	inline const Vector2& GetResolution() { return resolution; }
 	inline const class Device* GetDevice() const { return mDevice; }

@@ -146,7 +146,6 @@ void Device::CreateSwapChain()
 
 }
 
-
 void Device::CreateRTVAndDSVDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;

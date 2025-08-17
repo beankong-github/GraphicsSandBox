@@ -181,6 +181,7 @@ xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
   <ItemGroup>
     <ClInclude Include="Core\Device.h" />
     <ClInclude Include="Core\engine.h" />
+    <ClInclude Include="Core\GameTimer.h" />
     <ClInclude Include="Core\SBEngine.h" />
     <ClInclude Include="Core\pch.h" />
   </ItemGroup>
@@ -194,6 +195,7 @@ xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Core\Device.cpp" />
+    <ClCompile Include="Core\GameTimer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
