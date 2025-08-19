@@ -16,9 +16,11 @@ GameTimer::GameTimer()
 
 float GameTimer::TotalTime() const
 {
+	return 0.f;
 }
 float GameTimer::DeltaTime() const
 {
+	return 0.f;
 }
 
 void GameTimer::Reset()

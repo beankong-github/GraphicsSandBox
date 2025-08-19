@@ -1,5 +1,6 @@
 #pragma once
 #include "engine.h"
+#include "GameTimer.h"
 
 class Engine_API SBEngine
 {
@@ -35,7 +36,8 @@ private:
 	// ΩÃ±€≈Ê
 	static SBEngine* instance;
 
-	class Device* mDevice;
+	class Device*	 mDevice;
+	GameTimer		mTimer;
 
 	HWND hWnd = 0;
 	Vector2 resolution = Vector2::Zero;

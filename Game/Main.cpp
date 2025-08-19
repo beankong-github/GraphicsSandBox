@@ -78,7 +78,7 @@ int main()
 		else
 		{
 			// TODO::Run Engine Loop
-
+			SBEngine::Get()->Progress();
 
 		}
 	}

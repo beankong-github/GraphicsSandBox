@@ -167,6 +167,73 @@ void Device::CreateRTVAndDSVDescriptorHeaps()
 		&dsvHeapDesc, IID_PPV_ARGS(mDsvHeap.GetAddressOf())));
 }
 
+void Device::Update()
+{
+}
+
+void Device::Draw()
+{
+	// Command List재사용을 위해 mDirectCmdListAlloc Reset
+	ThrowIfFailed(mDirectCmdListAlloc->Reset());
+	// Command List 재사용을 위한 Reset
+	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+	// BackBuffer의 Resource Barrier 설정
+	// Resource Barrier?
+	// 리소스의 상태 관리를 위한 객체
+	// 렌더 타겟을 Clear하기 위해 상태를 STATE_RENDER_TARGET로 변경해준다.
+	D3D12_RESOURCE_BARRIER barrier;
+	ZeroMemory(&barrier, sizeof(barrier));
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = CurrentBackBuffer();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+	mCommandList->ResourceBarrier(1, &barrier);
+
+	// ViewPort 정보 설정
+	mCommandList->RSSetViewports(1, &mScreenViewport);
+	// Scissor Rect 설정
+	// 가위 직사각형(Scissor Rectangle)은 특정 픽셀들을 선별(Culling)하는 용도로 쓰인다. 후면 버퍼를 기준으로 가위 직사각형을 정의, 설정하면, 렌더링 시 가위 직사각형의 바깥에 있는 픽셀들은 후면 버퍼에 래스터화 되지 않는다. 이러한 픽셀 선별은 일종의 최적화 기법이다.
+	mCommandList->RSSetScissorRects(1, &mScissorRect);
+
+	// 백버퍼와 깊이 버퍼 클리어
+	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
+	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+	// 렌더링할 버퍼를 지정한다.
+	D3D12_CPU_DESCRIPTOR_HANDLE bbv = CurrentBackBufferView();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv = DepthStencilView();
+	mCommandList->OMSetRenderTargets(1, &bbv, true, &dsv);
+
+	// GPU에서 Render Target을 읽을 수 있게 
+	// BackBuffer의 상태를 PRESENT상태로 바꿔준다.
+	ZeroMemory(&barrier, sizeof(barrier));
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = CurrentBackBuffer();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+	// Command List 작성 종료!
+	ThrowIfFailed(mCommandList->Close());
+
+	// Command List의 명령을 실행하기 위해 Queue로 보낸다.
+	ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+
+	// buffer swap! (front <-> back)
+	ThrowIfFailed(mSwapChain->Present(0, 0));
+	mCurrentBackBuffer = (mCurrentBackBuffer + 1) % SwapChainBufferCount;
+
+	// Command Queue 명령이 모두 완료될 때까지 대기한다.
+	// TODO :: 프레임 명령이 완료될 때까지 기다린다. 이 방식은 비효율적이며 단순화를 위해 사용된 것이다. 이후에는 매 프레임마다 기다리지 않아도 되도록 렌더링 코드를 구성하는 방법을 보여줄 것이다.
+	FlushCommandQueue();
+}
+
 void Device::OnResizeWindow()
 {
 	assert(mDevice);
@@ -175,36 +242,41 @@ void Device::OnResizeWindow()
 
 	Vector2 newResolution = SBEngine::Get()->GetResolution();
 
+	// Command Queue 명령이 모두 완료될 때까지 대기한다.
 	FlushCommandQueue();
 
+	// mDirectCmdListAlloc 리셋
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
+	// SwapChainBuffer(Front, Back)와 DSBuffer 리셋
 	for (int i = 0; i < SwapChainBufferCount; ++i)
 		mSwapChainBuffer[i].Reset();
 	mDepthStencilBuffer.Reset();
 
 
+	// SwapChainBuffer(Front, Back) 리사이즈
 	ThrowIfFailed(mSwapChain->ResizeBuffers(
 		SwapChainBufferCount,
 		newResolution.x, newResolution.y,
 		mBackBufferFormat,
 		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
-	mCurrBackBuffer = 0;
+	// 현재 BackBuffer Index 0으로 설정(초기화)
+	mCurrentBackBuffer = 0;
 
-
+	// SwapChainBufferView 생성
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
-
 	for (UINT i = 0; i < SwapChainBufferCount; i++)
 	{
-		ThrowIfFailed(mSwapChain->GetBuffer(i,											IID_PPV_ARGS(&mSwapChainBuffer[i])));
+		ThrowIfFailed(mSwapChain->GetBuffer(i, IID_PPV_ARGS(&mSwapChainBuffer[i])));
 		mDevice->CreateRenderTargetView(mSwapChainBuffer[i].Get(),
 										nullptr,
 										rtvHeapHandle);
 		rtvHeapHandle.ptr += mRtvDescriptorSize;
 	}
 	
-	// Create the depth/stencil buffer and view.
+	// depth/stencil buffer와 view 생성
+	// DSbuffer 정보
 	D3D12_RESOURCE_DESC depthStencilDesc;
 	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	depthStencilDesc.Alignment = 0;
@@ -224,19 +296,21 @@ void Device::OnResizeWindow()
 	depthStencilDesc.SampleDesc.Quality = 0;
 	depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
+	
+	// DS 초기화 정보
 	D3D12_CLEAR_VALUE optClear;
 	optClear.Format = mDepthStencilFormat;
-	optClear.DepthStencil.Depth = 1.0f;
+	optClear.DepthStencil.Depth = 1.0f;		// Depth 값은 1로 초기화 (가장 먼 값)
 	optClear.DepthStencil.Stencil = 0;
 	
 	D3D12_HEAP_PROPERTIES heap;
-	heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+	heap.Type = D3D12_HEAP_TYPE_DEFAULT;		// GPU 전용 VRAM.
 	heap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 	heap.CreationNodeMask = 1;
 	heap.VisibleNodeMask = 1;
 
+	// DSBuffer 생성
 	ThrowIfFailed(mDevice->CreateCommittedResource(
 		&heap,
 		D3D12_HEAP_FLAG_NONE,
@@ -245,7 +319,7 @@ void Device::OnResizeWindow()
 		&optClear,
 		IID_PPV_ARGS(mDepthStencilBuffer.GetAddressOf())));
 	
-	// Create descriptor to mip level 0 of entire resource using the format of the resource.
+	// DSV 생성
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
 	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
@@ -253,15 +327,16 @@ void Device::OnResizeWindow()
 	dsvDesc.Texture2D.MipSlice = 0;
 	mDevice->CreateDepthStencilView(mDepthStencilBuffer.Get(), &dsvDesc, DepthStencilView());
 
-	// Execute the resize commands.
+	// 모든 resize 명령을 생성하여 추가했으므로 mCommandList 닫기
 	ThrowIfFailed(mCommandList->Close());
+	// Command Queue에 명령 전달
 	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
-	// Wait until resize is complete.
+	// Command Queue 완료 대기
 	FlushCommandQueue();
 
-	// Update the viewport transform to cover the client area.
+	// 클라이언트를 위해 viewport transform 업데이트
 	mScreenViewport.TopLeftX = 0;
 	mScreenViewport.TopLeftY = 0;
 	mScreenViewport.Width = static_cast<float>(newResolution.x);
@@ -342,6 +417,21 @@ void Device::LogAdapterOutputs(IDXGIAdapter* adapter)
 
 void Device::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
 {
+}
+
+inline ID3D12Resource* Device::CurrentBackBuffer() const
+{
+	return mSwapChainBuffer[mCurrentBackBuffer].Get();
+}
+
+inline D3D12_CPU_DESCRIPTOR_HANDLE Device::CurrentBackBufferView() const
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE curBackBufferView;
+	
+	// RTV HEAP 시작 주소 + Buffer Index *  RTV 크기 
+	curBackBufferView.ptr = mRtvHeap->GetCPUDescriptorHandleForHeapStart().ptr + mCurrentBackBuffer * mRtvDescriptorSize;
+	
+	return curBackBufferView;
 }
 
 inline D3D12_CPU_DESCRIPTOR_HANDLE Device::DepthStencilView() const

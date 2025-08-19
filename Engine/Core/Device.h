@@ -27,7 +27,6 @@ private:
 	void CreateRTVAndDSVDescriptorHeaps();
 
 	void Update();
-	void LateUpdate();
 	void Draw();
 
 	void OnResizeWindow();
@@ -37,7 +36,10 @@ private:
 	void LogAdapterOutputs(IDXGIAdapter* adapter);
 	void LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format);
 
+	inline ID3D12Resource* CurrentBackBuffer() const;
+	inline D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
 	inline D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
+
 
 	ComPtr<ID3D12Device>		mDevice;			
 	ComPtr<IDXGIFactory4>		mFactory;	
@@ -54,7 +56,7 @@ private:
 
 	// Swap Chain
 	static const int SwapChainBufferCount = 2;
-	int mCurrBackBuffer = 0;
+	int mCurrentBackBuffer = 0;
 	ComPtr<ID3D12Resource> mSwapChainBuffer[SwapChainBufferCount];
 	ComPtr<ID3D12Resource> mDepthStencilBuffer;
 

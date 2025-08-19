@@ -32,6 +32,7 @@ void SBEngine::Init(HWND hWnd, Vector2 resolution)
 
 void SBEngine::Progress()
 {
+	mDevice->Draw();
 }
 
 void SBEngine::OnResizeWindow(Vector2 resolution)
@@ -52,7 +53,7 @@ LRESULT SBEngine::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		if (mDevice)
 		{
 			if (wParam == SIZE_MINIMIZED)
-			{
+			{	
 				
 			}
 		}
