@@ -7,8 +7,12 @@ bool Device::Init()
 	if (InitDirect3D())
 	{
 		OnResizeWindow();
+		//TMP
+		triangle = new Mesh();
+		triangle->TMPInit();
 		return true;
 	}
+	
 
 	return false;
 }
@@ -176,21 +180,16 @@ void Device::Draw()
 	// Command List재사용을 위해 mDirectCmdListAlloc Reset
 	ThrowIfFailed(mDirectCmdListAlloc->Reset());
 	// Command List 재사용을 위한 Reset
-	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+	//ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+	/*TMP triangle 랜더링을 위한 ..*/
+	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), triangle->mPSO.Get()));
 
 	// BackBuffer의 Resource Barrier 설정
 	// Resource Barrier?
 	// 리소스의 상태 관리를 위한 객체
 	// 렌더 타겟을 Clear하기 위해 상태를 STATE_RENDER_TARGET로 변경해준다.
-	D3D12_RESOURCE_BARRIER barrier;
-	ZeroMemory(&barrier, sizeof(barrier));
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = CurrentBackBuffer();
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mCommandList->ResourceBarrier(1, &barrier);
 
 	// ViewPort 정보 설정
@@ -208,15 +207,16 @@ void Device::Draw()
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = DepthStencilView();
 	mCommandList->OMSetRenderTargets(1, &bbv, true, &dsv);
 
+	// TODO :: Render Someting
+	// TMP Render Triangle
+	triangle->Render();
+
 	// GPU에서 Render Target을 읽을 수 있게 
 	// BackBuffer의 상태를 PRESENT상태로 바꿔준다.
-	ZeroMemory(&barrier, sizeof(barrier));
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = CurrentBackBuffer();
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	mCommandList->ResourceBarrier(1, &barrier);
+
 
 	// Command List 작성 종료!
 	ThrowIfFailed(mCommandList->Close());
@@ -303,16 +303,10 @@ void Device::OnResizeWindow()
 	optClear.DepthStencil.Depth = 1.0f;		// Depth 값은 1로 초기화 (가장 먼 값)
 	optClear.DepthStencil.Stencil = 0;
 	
-	D3D12_HEAP_PROPERTIES heap;
-	heap.Type = D3D12_HEAP_TYPE_DEFAULT;		// GPU 전용 VRAM.
-	heap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	heap.CreationNodeMask = 1;
-	heap.VisibleNodeMask = 1;
-
 	// DSBuffer 생성
+	auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	ThrowIfFailed(mDevice->CreateCommittedResource(
-		&heap,
+		&heap,// GPU 전용 VRAM.
 		D3D12_HEAP_FLAG_NONE,
 		&depthStencilDesc,
 		D3D12_RESOURCE_STATE_DEPTH_WRITE,
@@ -340,7 +334,7 @@ void Device::OnResizeWindow()
 	mScreenViewport.TopLeftX = 0;
 	mScreenViewport.TopLeftY = 0;
 	mScreenViewport.Width = static_cast<float>(newResolution.x);
-	mScreenViewport.Height = static_cast<float>(newResolution.x);
+	mScreenViewport.Height = static_cast<float>(newResolution.y);
 	mScreenViewport.MinDepth = 0.0f;
 	mScreenViewport.MaxDepth = 1.0f;
 	
@@ -349,10 +343,13 @@ void Device::OnResizeWindow()
 
 void Device::FlushCommandQueue()
 {
+	// 펜스 증가
 	mCurrentFence++;
 
+	// 펜스 값 설정
 	ThrowIfFailed(mCommandQueue->Signal(mFence.Get(), mCurrentFence));
 
+	// 아직 펜스에 이전 값이 남아 있다면.. -> 아직 작업중이므로 대기한다
 	if (mFence->GetCompletedValue() < mCurrentFence)
 	{
 		HANDLE eventHandle = CreateEventEx(nullptr, 0, 0, EVENT_ALL_ACCESS);
@@ -417,6 +414,28 @@ void Device::LogAdapterOutputs(IDXGIAdapter* adapter)
 
 void Device::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
 {
+}
+
+void Device::StartWriteCommandList()
+{
+	// Command Queue 명령이 모두 완료될 때까지 대기한다.
+	FlushCommandQueue();
+
+	// mDirectCmdListAlloc 리셋
+	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+
+}
+
+void Device::FinishWriteCommandListAndFlush()
+{
+	// 모든 resize 명령을 생성하여 추가했으므로 mCommandList 닫기
+	ThrowIfFailed(mCommandList->Close());
+	// Command Queue에 명령 전달
+	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	FlushCommandQueue();
 }
 
 inline ID3D12Resource* Device::CurrentBackBuffer() const

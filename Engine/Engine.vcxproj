@@ -95,7 +95,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\DirectXTK12\Inc;..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectXTK12\Inc;..\Engine\Core;..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -107,6 +107,10 @@
       <Command>xcopy $(OutDir)\Engine.lib ..\Lib\Engine\ /y
 xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
     </PostBuildEvent>
+    <FxCompile>
+      <ShaderType>Effect</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -119,7 +123,7 @@ xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\DirectXTK12\Inc;..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectXTK12\Inc;..\Engine\Core;..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,7 +145,7 @@ xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\DirectXTK12\Inc;..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectXTK12\Inc;..\Engine\Core;..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,6 +157,10 @@ xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
       <Command>xcopy $(OutDir)\Engine.lib ..\Lib\Engine\ /y
 xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
     </PostBuildEvent>
+    <FxCompile>
+      <ShaderType>Effect</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -165,7 +173,7 @@ xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\DirectXTK12\Inc;..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectXTK12\Inc;..\Engine\Core;..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -183,12 +191,16 @@ xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
     <ClInclude Include="Core\engine.h" />
     <ClInclude Include="Core\GameTimer.h" />
     <ClInclude Include="Core\SBEngine.h" />
-    <ClInclude Include="Core\pch.h" />
+    <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="UploadBuffer.h" />
+    <ClInclude Include="struct.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Mesh\Mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\engine.cpp" />
     <ClCompile Include="Core\SBEngine.cpp" />
-    <ClCompile Include="Core\pch.cpp">
+    <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -196,6 +208,10 @@ xcopy $(OutDir)\Engine.dll ..\Lib\Engine\ /y</Command>
     </ClCompile>
     <ClCompile Include="Core\Device.cpp" />
     <ClCompile Include="Core\GameTimer.cpp" />
+    <ClCompile Include="Mesh\Mesh.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shader\shaders.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
