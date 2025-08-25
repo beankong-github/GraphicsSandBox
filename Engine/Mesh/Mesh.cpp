@@ -9,18 +9,36 @@ Mesh::Mesh(std::string&& name, std::vector<Vertex>&& verties, std::vector<UINT>&
 	//InitMesh();
 }
 
-Mesh::Mesh()
-	: Mesh("Triangle",
-		vector<Vertex>({
-		{ { 0.0f, 0.25f, 0.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
-		{ { 0.25f, -0.25f, 0.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
-		{ { -0.25f, -0.25f, 0.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } }
-		}), 
-		vector<UINT>({ 0, 1, 2 }))
+Mesh::~Mesh()
 {
+	SafeRelease(mRootSignature);
+	SafeRelease(mCbvHeap);
+	SafeRelease(mPSO);
 
+	SafeRelease(mVertexBufferGPU);
+	SafeRelease(mIndexBufferGPU);
 
+	SafeRelease(mVSByteCode);
+	SafeRelease(mPSByteCode);
+
+	SafeRelease(mVertexBufferCPU);
+	SafeRelease(mIndexBufferCPU);
+	SafeRelease(mVertexBufferUploader);
+	SafeRelease(mIndexBufferUploader);
 }
+
+//Mesh::Mesh()
+//	: Mesh("Triangle",
+//		vector<Vertex>({
+//		{ { 0.0f, 0.25f, 0.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+//		{ { 0.25f, -0.25f, 0.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+//		{ { -0.25f, -0.25f, 0.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } }
+//		}), 
+//		vector<UINT>({ 0, 1, 2 }))
+//{
+//
+//
+//}
 
 void Mesh::InitMesh()
 {
@@ -40,9 +58,9 @@ void Mesh::InitMesh()
 	auto commandList = SBEngine::Get()->GetCommandList();
 	assert(commandList);
 
-	mVertexBufferGPU = CreateDefaultBuffer(device.Get(), commandList.Get(), mVertices.data(), vbByteSize, mVertexBufferUploader);
+	mVertexBufferGPU = CreateDefaultBuffer(device.Get(), commandList.Get(), mVertices.data(), vbByteSize, &mVertexBufferUploader);
 
-	mIndexBufferGPU = CreateDefaultBuffer(device.Get(), commandList.Get(), mIndices.data(), ibByteSize, mIndexBufferUploader);
+	mIndexBufferGPU = CreateDefaultBuffer(device.Get(), commandList.Get(), mIndices.data(), ibByteSize, &mIndexBufferUploader);
 
 	mVertextByteStride = sizeof(Vertex);
 	mVertexBufferByteSize = vbByteSize;
@@ -120,10 +138,10 @@ void Mesh::InitRootSignature()
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	// create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
-	ComPtr<ID3DBlob> serializedRootSig = nullptr;
-	ComPtr<ID3DBlob> errorBlob = nullptr;
+	ID3DBlob* serializedRootSig = nullptr;
+	ID3DBlob* errorBlob = nullptr;
 	HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-		serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf());
+		&serializedRootSig, &errorBlob);
 
 	if(errorBlob != nullptr)
 	{
@@ -147,7 +165,7 @@ void Mesh::InitPSO()
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	psoDesc.InputLayout = { mInputLayout.data(), (UINT)mInputLayout.size() };
-	psoDesc.pRootSignature = mRootSignature.Get();
+	psoDesc.pRootSignature = mRootSignature;
 	psoDesc.VS =
 	{
 		reinterpret_cast<BYTE*>(mVSByteCode->GetBufferPointer()),
@@ -229,8 +247,8 @@ void Mesh::TMPInit()
 
 		SBEngine::Get()->FinishAndFlushCommandList();
 	}
-	mVertexBufferUploader.Reset();
-	mIndexBufferUploader.Reset();
+	SafeRelease(mVertexBufferUploader);
+	SafeRelease(mIndexBufferUploader);
 }
 
 void Mesh::Render()
@@ -242,11 +260,11 @@ void Mesh::Render()
 
 	auto commandList = SBEngine::Get()->GetCommandList();
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvHeap.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvHeap };
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	commandList->SetPipelineState(mPSO.Get());
-	commandList->SetGraphicsRootSignature(mRootSignature.Get());
+	commandList->SetPipelineState(mPSO);
+	commandList->SetGraphicsRootSignature(mRootSignature);
 	commandList->SetGraphicsRootDescriptorTable(0, mCbvHeap->GetGPUDescriptorHandleForHeapStart());
 
 	auto VBView = VertexBufferView();

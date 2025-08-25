@@ -26,6 +26,8 @@ public:
 public:
 	void Init(HWND hWnd, Vector2 resolution);
 	void Progress();
+	void ShutDown();
+
 	void OnResizeWindow(Vector2 resolution);
 
 	// Window 이벤트 처리

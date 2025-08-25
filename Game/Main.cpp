@@ -17,7 +17,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 int main()
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	///_CrtSetBreakAlloc(18);
+	//_CrtSetBreakAlloc(160);
 
 	// 현재 실행 모듈의 인스턴스 핸들. 창 클래스 등록/창 생성 시 필요.
 	HINSTANCE hInst = GetModuleHandleW(nullptr);
@@ -85,6 +85,8 @@ int main()
 
 		}
 	}
+	SBEngine::Get()->ShutDown();
+
 	// 메세지 처리
 	WndProc(hWnd, msg.message, msg.wParam, msg.lParam);
 

@@ -2,14 +2,29 @@
 #include "Device.h"
 #include "SBEngine.h"
 
+Device::~Device()
+{
+	SafeRelease(mDevice);
+	SafeRelease(mFactory);
+	SafeRelease(mSwapChain);
+	SafeRelease(mFence);
+	SafeRelease(mCommandQueue);
+	SafeRelease(mDirectCmdListAlloc);
+	SafeRelease(mCommandList);
+
+
+	SafeRelease(mDepthStencilBuffer);
+	SafeReleaseArray(mSwapChainBuffer, SwapChainBufferCount);
+
+	SafeRelease(mRtvHeap);
+	SafeRelease(mDsvHeap);
+}
+
 bool Device::Init()
 {
 	if (InitDirect3D())
 	{
 		OnResizeWindow();
-		//TMP
-		triangle = new Mesh();
-		triangle->TMPInit();
 		return true;
 	}
 	
@@ -28,22 +43,28 @@ bool Device::InitDirect3D()
 
 	ThrowIfFailed(CreateDXGIFactory2(factoryFlags,IID_PPV_ARGS(&mFactory)));
 	
-	// Try to create hardware device.
+	// D3D12 Device 생성 시도
 	HRESULT hardwareResult = D3D12CreateDevice(
 		nullptr,             // default adapter
 		D3D_FEATURE_LEVEL_11_0,
 		IID_PPV_ARGS(&mDevice));
 	
-	// Fallback to WARP device.
+	// 하드웨어 디바이스 생성 실패했을 때
 	if (FAILED(hardwareResult))
-	{
-		ComPtr<IDXGIAdapter> pWarpAdapter;
+	{  
+		// DXGI Factory에서 WARP 어댑터(소프트웨어) 가져오기
+		// WARP(Windows Advanced Rasterization Platform)  -> CPU로 Direct3D 기능을 에뮬레이션해서, GPU가 없어도 DirectX를 돌릴 수 있게 해줌.
+		IDXGIAdapter* pWarpAdapter;
 		ThrowIfFailed(mFactory->EnumWarpAdapter(IID_PPV_ARGS(&pWarpAdapter)));
 	
+		// WARP 어댑터로 D3D12 Device 생성
 		ThrowIfFailed(D3D12CreateDevice(
-			pWarpAdapter.Get(),
+			pWarpAdapter,
 			D3D_FEATURE_LEVEL_11_0,
 			IID_PPV_ARGS(&mDevice)));
+
+		// COM 객체 해제
+		SafeRelease(pWarpAdapter);
 	}
 	
 	// Fence 생성
@@ -97,15 +118,15 @@ void Device::CreateCommandObjects()
 	// Command Allocator
 	ThrowIfFailed(mDevice->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		IID_PPV_ARGS(mDirectCmdListAlloc.GetAddressOf())));
+		IID_PPV_ARGS(&mDirectCmdListAlloc)));
 
 	// CommandList
 	ThrowIfFailed(mDevice->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		mDirectCmdListAlloc.Get(), // Associated command allocator
+		mDirectCmdListAlloc, // Associated command allocator
 		nullptr,                   // Initial PipelineStateObject
-		IID_PPV_ARGS(mCommandList.GetAddressOf())));
+		IID_PPV_ARGS(&mCommandList)));
 
 	// Command List는 닫힌 상태로 시작되어야 합니다.
 	// 왜냐면 처음 Command List에 접근해 명령을 작성하기 전에 Reset()을 호출하는데
@@ -119,7 +140,7 @@ void Device::CreateSwapChain()
 	HWND windowHandle = SBEngine::Get()->GetMainHwnd();
 
 	// Release the previous swapchain we will be recreating.
-	mSwapChain.Reset();
+	SafeRelease(mSwapChain);
 
 	DXGI_SWAP_CHAIN_DESC1 sd;
 	sd.Width = resolution.x;
@@ -136,18 +157,17 @@ void Device::CreateSwapChain()
 	sd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
 	sd.Flags = 0;
 
-	ComPtr<IDXGISwapChain1> sc1;
+	IDXGISwapChain1* sc1;
 	ThrowIfFailed(mFactory->CreateSwapChainForHwnd(
-		mCommandQueue.Get(),	// command queue
+		mCommandQueue,	// command queue
 		SBEngine::Get()->GetMainHwnd(),
 		&sd,
 		nullptr,
 		nullptr,
-		sc1.ReleaseAndGetAddressOf()));
+		&sc1));
 
-	
-	ThrowIfFailed(sc1.As(&mSwapChain));
-
+	ThrowIfFailed(sc1->QueryInterface(IID_PPV_ARGS(&mSwapChain)));
+	SafeRelease(sc1);
 }
 
 void Device::CreateRTVAndDSVDescriptorHeaps()
@@ -159,7 +179,7 @@ void Device::CreateRTVAndDSVDescriptorHeaps()
 	rtvHeapDesc.NodeMask = 0;
 
 	ThrowIfFailed(mDevice->CreateDescriptorHeap(
-		&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
+		&rtvHeapDesc, IID_PPV_ARGS(&mRtvHeap)));
 
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
@@ -168,7 +188,7 @@ void Device::CreateRTVAndDSVDescriptorHeaps()
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
 	ThrowIfFailed(mDevice->CreateDescriptorHeap(
-		&dsvHeapDesc, IID_PPV_ARGS(mDsvHeap.GetAddressOf())));
+		&dsvHeapDesc, IID_PPV_ARGS(&mDsvHeap)));
 }
 
 void Device::Update()
@@ -178,11 +198,9 @@ void Device::Update()
 void Device::Draw()
 {
 	// Command List재사용을 위해 mDirectCmdListAlloc Reset
-	ThrowIfFailed(mDirectCmdListAlloc->Reset());
+	mDirectCmdListAlloc->Reset();
 	// Command List 재사용을 위한 Reset
-	//ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-	/*TMP triangle 랜더링을 위한 ..*/
-	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), triangle->mPSO.Get()));
+	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc, nullptr));
 
 	// BackBuffer의 Resource Barrier 설정
 	// Resource Barrier?
@@ -208,8 +226,6 @@ void Device::Draw()
 	mCommandList->OMSetRenderTargets(1, &bbv, true, &dsv);
 
 	// TODO :: Render Someting
-	// TMP Render Triangle
-	triangle->Render();
 
 	// GPU에서 Render Target을 읽을 수 있게 
 	// BackBuffer의 상태를 PRESENT상태로 바꿔준다.
@@ -222,7 +238,7 @@ void Device::Draw()
 	ThrowIfFailed(mCommandList->Close());
 
 	// Command List의 명령을 실행하기 위해 Queue로 보낸다.
-	ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
+	ID3D12CommandList* cmdLists[] = { mCommandList};
 	mCommandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
 
 	// buffer swap! (front <-> back)
@@ -246,12 +262,12 @@ void Device::OnResizeWindow()
 	FlushCommandQueue();
 
 	// mDirectCmdListAlloc 리셋
-	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc, nullptr));
 
 	// SwapChainBuffer(Front, Back)와 DSBuffer 리셋
 	for (int i = 0; i < SwapChainBufferCount; ++i)
-		mSwapChainBuffer[i].Reset();
-	mDepthStencilBuffer.Reset();
+		SafeRelease(mSwapChainBuffer[i]);
+	SafeRelease(mDepthStencilBuffer);
 
 
 	// SwapChainBuffer(Front, Back) 리사이즈
@@ -269,7 +285,7 @@ void Device::OnResizeWindow()
 	for (UINT i = 0; i < SwapChainBufferCount; i++)
 	{
 		ThrowIfFailed(mSwapChain->GetBuffer(i, IID_PPV_ARGS(&mSwapChainBuffer[i])));
-		mDevice->CreateRenderTargetView(mSwapChainBuffer[i].Get(),
+		mDevice->CreateRenderTargetView(mSwapChainBuffer[i],
 										nullptr,
 										rtvHeapHandle);
 		rtvHeapHandle.ptr += mRtvDescriptorSize;
@@ -311,7 +327,7 @@ void Device::OnResizeWindow()
 		&depthStencilDesc,
 		D3D12_RESOURCE_STATE_DEPTH_WRITE,
 		&optClear,
-		IID_PPV_ARGS(mDepthStencilBuffer.GetAddressOf())));
+		IID_PPV_ARGS(&mDepthStencilBuffer)));
 	
 	// DSV 생성
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
@@ -319,12 +335,12 @@ void Device::OnResizeWindow()
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	dsvDesc.Format = mDepthStencilFormat;
 	dsvDesc.Texture2D.MipSlice = 0;
-	mDevice->CreateDepthStencilView(mDepthStencilBuffer.Get(), &dsvDesc, DepthStencilView());
+	mDevice->CreateDepthStencilView(mDepthStencilBuffer, &dsvDesc, DepthStencilView());
 
 	// 모든 resize 명령을 생성하여 추가했으므로 mCommandList 닫기
 	ThrowIfFailed(mCommandList->Close());
 	// Command Queue에 명령 전달
-	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+	ID3D12CommandList* cmdsLists[] = { mCommandList };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 	// Command Queue 완료 대기
@@ -347,7 +363,7 @@ void Device::FlushCommandQueue()
 	mCurrentFence++;
 
 	// 펜스 값 설정
-	ThrowIfFailed(mCommandQueue->Signal(mFence.Get(), mCurrentFence));
+	ThrowIfFailed(mCommandQueue->Signal(mFence, mCurrentFence));
 
 	// 아직 펜스에 이전 값이 남아 있다면.. -> 아직 작업중이므로 대기한다
 	if (mFence->GetCompletedValue() < mCurrentFence)
@@ -386,7 +402,7 @@ void Device::LogAdapters()
 	for (size_t i = 0; i < adapterList.size(); ++i)
 	{
 		LogAdapterOutputs(adapterList[i]);
-		ReleaseCom(adapterList[i]);
+		SafeRelease(adapterList[i]);
 	}
 }
 
@@ -406,7 +422,7 @@ void Device::LogAdapterOutputs(IDXGIAdapter* adapter)
 
 		LogOutputDisplayModes(output, mBackBufferFormat);
 
-		ReleaseCom(output);
+		SafeRelease(output);
 
 		++i;
 	}
@@ -422,7 +438,7 @@ void Device::StartWriteCommandList()
 	FlushCommandQueue();
 
 	// mDirectCmdListAlloc 리셋
-	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc, nullptr));
 
 
 }
@@ -432,7 +448,7 @@ void Device::FinishWriteCommandListAndFlush()
 	// 모든 resize 명령을 생성하여 추가했으므로 mCommandList 닫기
 	ThrowIfFailed(mCommandList->Close());
 	// Command Queue에 명령 전달
-	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+	ID3D12CommandList* cmdsLists[] = { mCommandList};
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 	FlushCommandQueue();
@@ -440,7 +456,7 @@ void Device::FinishWriteCommandListAndFlush()
 
 inline ID3D12Resource* Device::CurrentBackBuffer() const
 {
-	return mSwapChainBuffer[mCurrentBackBuffer].Get();
+	return mSwapChainBuffer[mCurrentBackBuffer];
 }
 
 inline D3D12_CPU_DESCRIPTOR_HANDLE Device::CurrentBackBufferView() const

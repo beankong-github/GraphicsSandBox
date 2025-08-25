@@ -7,8 +7,6 @@ SBEngine* SBEngine::instance = nullptr;
 
 SBEngine::~SBEngine()
 {
-	if (mDevice)
-		delete mDevice;
 }
 
 void SBEngine::Init(HWND hWnd, Vector2 resolution)
@@ -33,6 +31,17 @@ void SBEngine::Init(HWND hWnd, Vector2 resolution)
 void SBEngine::Progress()
 {
 	mDevice->Draw();
+}
+
+void SBEngine::ShutDown()
+{
+	SafeDelete(mDevice);
+
+	if (instance)
+	{
+		delete instance;
+		instance = nullptr;
+	}
 }
 
 void SBEngine::OnResizeWindow(Vector2 resolution)

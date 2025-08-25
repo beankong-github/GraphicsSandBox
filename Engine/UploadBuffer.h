@@ -5,8 +5,8 @@ template<typename T>
 class UploadBuffer
 {
 public:
-    UploadBuffer(ID3D12Device* device, UINT elementCount, bool isConstantBuffer) :
-        mIsConstantBuffer(isConstantBuffer)
+    UploadBuffer(ID3D12Device* device, UINT elementCount, bool isConstantBuffer) 
+        : mIsConstantBuffer(isConstantBuffer)
     {
         mElementByteSize = sizeof(T);
 
@@ -43,12 +43,13 @@ public:
         if (mUploadBuffer != nullptr)
             mUploadBuffer->Unmap(0, nullptr);
 
+        SafeRelease(mUploadBuffer);
         mMappedData = nullptr;
     }
 
     ID3D12Resource* Resource()const
     {
-        return mUploadBuffer.Get();
+        return mUploadBuffer;
     }
 
     void CopyData(int elementIndex, const T& data)
@@ -57,7 +58,7 @@ public:
     }
 
 private:
-    Microsoft::WRL::ComPtr<ID3D12Resource> mUploadBuffer;
+     ID3D12Resource* mUploadBuffer;
     BYTE* mMappedData = nullptr;
 
     UINT mElementByteSize = 0;

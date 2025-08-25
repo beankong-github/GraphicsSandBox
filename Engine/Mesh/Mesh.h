@@ -21,9 +21,7 @@ class Engine_API Mesh
 
 public:
 	Mesh(std::string&& name, std::vector<Vertex>&& verties, std::vector<UINT>&& indices);
-	// tmp
-	Mesh();
-	~Mesh() = default;
+	~Mesh();
 
 	const string& Name() const { return mName; }
 	void SetName(string name) { mName = name; }
@@ -54,25 +52,25 @@ private:
 	std::vector<UINT> mIndices;		// 정점 인덱스 정보
 
 	// TODO ::  Mesh 와 Render Path관련 정보 분리
-	ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
-	ComPtr<ID3D12DescriptorHeap> mCbvHeap = nullptr;    
+	ID3D12RootSignature* mRootSignature = nullptr;
+	ID3D12DescriptorHeap* mCbvHeap = nullptr;    
 	std::unique_ptr<UploadBuffer<ObjectConstants>> mObjectCB = nullptr;
-	ComPtr<ID3D12PipelineState> mPSO = nullptr;
+	ID3D12PipelineState* mPSO = nullptr;
 	// TMP  :: Shader 컴파일 결과
-	ComPtr<ID3DBlob> mVSByteCode = nullptr;
-	ComPtr<ID3DBlob> mPSByteCode = nullptr;
+	ID3DBlob* mVSByteCode = nullptr;
+	ID3DBlob* mPSByteCode = nullptr;
 	// TMP :: inputLayout
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 
 
-	ComPtr<ID3DBlob> mVertexBufferCPU = nullptr;
-	ComPtr<ID3DBlob> mIndexBufferCPU = nullptr;
+	ID3DBlob* mVertexBufferCPU = nullptr;
+	ID3DBlob* mIndexBufferCPU = nullptr;
 
-	ComPtr<ID3D12Resource> mVertexBufferGPU = nullptr;
-	ComPtr<ID3D12Resource> mIndexBufferGPU = nullptr;
+	ID3D12Resource* mVertexBufferGPU = nullptr;
+	ID3D12Resource* mIndexBufferGPU = nullptr;
 
-	ComPtr<ID3D12Resource> mVertexBufferUploader = nullptr;
-	ComPtr<ID3D12Resource> mIndexBufferUploader = nullptr;
+	ID3D12Resource* mVertexBufferUploader = nullptr;
+	ID3D12Resource* mIndexBufferUploader = nullptr;
 
 	UINT mVertextByteStride = 0;
 	UINT mVertexBufferByteSize = 0;
