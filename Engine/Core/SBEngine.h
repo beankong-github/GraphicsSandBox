@@ -2,6 +2,9 @@
 #include "engine.h"
 #include "GameTimer.h"
 
+// TMP
+#include "Device.h"
+
 class Engine_API SBEngine
 {
 private:
@@ -30,7 +33,15 @@ public:
 
 	inline const HWND& GetMainHwnd() { return hWnd; }
 	inline const Vector2& GetResolution() { return resolution; }
-	inline const class Device* GetDevice() const { return mDevice; }
+	//inline const class Device* GetDevice() const { return mDevice; }
+	// TMP : : 외부에서 Device를 가져올 필요없게 구조 수정
+	inline const ComPtr<class ID3D12Device> GetDevice() const { assert(mDevice);  return mDevice->mDevice; }
+	// TMP :: 외부에서 Command List를 가져올 수 없게 수정
+	inline const ComPtr<class ID3D12GraphicsCommandList> GetCommandList() const { assert(mDevice);  return mDevice->mCommandList; }
+	
+	//TMP
+	void StartWriteCommadList() { mDevice->StartWriteCommandList(); }
+	void FinishAndFlushCommandList() { mDevice->FinishWriteCommandListAndFlush(); }
 
 private:
 	// 싱글톤

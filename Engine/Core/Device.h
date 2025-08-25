@@ -1,8 +1,12 @@
 #pragma once
 #include "engine.h"
+//TMP
+#include "Mesh/Mesh.h"
 
 class IDXGIFactory4;
-class IDXGISwapChain3;
+//class IDXGISwapChain3;
+
+#include <dxgi1_4.h>
 
 class Engine_API Device
 {
@@ -12,8 +16,7 @@ class Engine_API Device
 private:
 	// SBEngine이외에서 mDevice 생성을 막는다.
 	Device() = default;
-	~Device() = default;
-
+	~Device() {  /*TMP*/ delete triangle; triangle = nullptr; };
 
 	Device(const Device&) = delete;
 	Device& operator=(const Device&) = delete;
@@ -36,10 +39,16 @@ private:
 	void LogAdapterOutputs(IDXGIAdapter* adapter);
 	void LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format);
 
+	// TMP
+	void StartWriteCommandList();
+	void FinishWriteCommandListAndFlush();
+
+
 	inline ID3D12Resource* CurrentBackBuffer() const;
 	inline D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
 	inline D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
 
+	const ComPtr<ID3D12Device> D3D12Device() const { return mDevice; }
 
 	ComPtr<ID3D12Device>		mDevice;			
 	ComPtr<IDXGIFactory4>		mFactory;	
@@ -81,4 +90,8 @@ private:
 	D3D_DRIVER_TYPE md3dDriverType = D3D_DRIVER_TYPE_HARDWARE;
 	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+
+	// TMP
+	class Mesh* triangle;
 };
